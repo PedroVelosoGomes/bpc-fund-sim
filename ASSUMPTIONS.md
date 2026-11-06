@@ -1,0 +1,51 @@
+# ASSUMPTIONS
+
+Decisions made where the spec was silent or ambiguous. Each has a one-line rationale.
+
+## Time and cash flows
+1. **Year index = discount period.** A flow in "year t" is discounted by (1+r)^t, so year-0 flows are undiscounted. *This matches the hand-verified Example A IRR (−20 at year 0).*
+2. **Fund life L means a terminal year of L.** Exits up to year L are inside the fund life. Fee years run 0…L−1, so there are L annual fee charges. *Standard 10-year fund with 10 annual fees.*
+3. **Exits after the fund life are still counted** in their year, with a warning. *Excluding them would silently destroy value; the user decides whether to extend the fund.*
+4. **All timings must be whole years.** Non-integer timings raise an error. *The spec says time is in whole years.*
+
+## Fees
+5. Default fees are **2.0% of commitments during the investment period and 1.5% of net invested capital afterwards**. *Common European early-stage terms.*
+6. **Post-period basis = net invested capital (NIC) at the end of the previous year.** NIC = cost of initial plus follow-on investments in companies not yet exited or written off. Cost basis is released in the bucket's exit year, including write-offs. *Standard NIC definition. The fee for a year is set from the opening balance.*
+7. **Investable capital = committed − lifetime fees.** Fees are called in the year they accrue. *As the spec requires (fees reduce investable capital, no recycling).*
+
+## Carry
+8. **The European waterfall runs year by year with a compounding hurdle balance.** B_t = B_{t−1}(1+h) + contributions − LP distributions. B may go negative, which makes the test equivalent to "LP IRR ≥ hurdle". *This handles fee calls that happen after early distributions.*
+9. **Catch-up rate is a parameter (default 100%).** GP receives that share until it holds carry% of cumulative profit. *The general formula reduces to the spec's 100% case.*
+10. **A final clawback caps GP carry at carry% × total profit.** It is applied in the last year. *Prevents over-distribution when fees are called after the hurdle is met. No interim escrow is modelled.*
+11. **Net metrics require both fees and carry to be enabled.** A no-fee fund with carry also shows N/A. *As written in the spec.*
+
+## Reserve and capital
+12. **Percent reserve = % of investable capital** (after fees). *Matches the spec wording.*
+13. **Initial budget = investable − separate-use sleeves − reserve.** Initial overruns warn. Total investments above direct investable capital raise an **error** (shown but not blocking). Reserve over-allocation **warns**. *The spec says warn on reserve, validate on total.*
+14. **Reserve is compared with *expected* planned follow-ons**, both cumulatively by year and in total. *The expected-value model gives the planned requirement.*
+15. **Separate-use sleeves (e.g. Ecosystem) are not modelled as cash flows** in v1. They are not called, carry no proceeds, and are excluded from gross and net metrics. They only reduce direct investable capacity. *There is no spec for how that capital is used. Listed as a limitation.*
+16. **The sleeve gap is reported, never auto-corrected.** Sleeve total − investable is shown when fees are on. *The spec says never adjust silently. Scaling helpers belong to the UI layer.*
+
+## Dilution and follow-ons
+17. **Round schedule is per cohort/profile.** A bucket reaches the first `roundsReached` rounds. *The simplest representation of "how many rounds the company reaches".*
+18. **Quick mode with no participation:** exit ownership = entry × (1 − cumulative dilution), regardless of the round schedule. *Exact match to the spec formula.*
+19. **Quick mode with participation (pro rata or fixed):** the cumulative dilution is split into modelled-round dilution and residual dilution, where residual factor = (1 − cum)/Π(1 − d_i), capped at 1. Pro rata offsets only the modelled-round part. *Keeps quick mode consistent with the explicit round schedule that follow-on cash needs.*
+20. **In explicit mode, `cumulativeDilution` is extra unmodelled dilution** (ESOP top-ups etc., default 0), applied before exit. *Makes room for option-pool dilution without inventing rounds.*
+21. **Follow-on policies always use the round schedule** for timing, size and price. That applies in quick mode too. *Cash needs a round size and a price.*
+22. **Fixed follow-on coverage:** each eligible bucket receives it with share min(1, fraction ÷ Σ eligible probability). There is a warning if the fraction exceeds eligible probability, or if an eligible bucket doesn't reach the chosen round. *This reads "fixed ticket into X% of the cohort, chosen from buckets B" literally.*
+23. **The fixed ticket buys ticket/round post-money** at the chosen round (default: the first). It is diluted by later rounds. *Priced like any participation in that round.*
+24. **Max single-company exposure = ticket + largest per-company follow-on across buckets.** *Uses the worst-case plan, as used for concentration limits.*
+
+## Exits and probabilities
+25. **Equity exit value is floored at 0** when net debt exceeds EV (with a warning). *Equity holders can't receive negative proceeds.*
+26. **Probability tolerance is 1e-6.** The default residual bucket is the first bucket of kind `modest`. *As the spec requires.*
+
+## IRR
+27. **Root scan over r ∈ (−99.99%, 100,000%) on a log grid** when the flows have more than one sign change. More than one NPV sign change gives N/A ("no unique IRR"), even if the extra root is near −100%. *The spec says show N/A when there is no unique root.*
+
+## Data model
+28. **Provenance lives in a separate map keyed by dotted path**, not wrapped around each number. *Keeps the engine's arithmetic on plain numbers and keeps the API simple.*
+29. **Scenario = (strategy, market case) plus per-cohort market overrides.** Entry valuation (post-money) belongs to the strategy. The market profile carries the acceptable post-money range used by strategy search. *Strategy picks ticket and ownership. The market bounds price.*
+
+## Demo preset
+30. **Bright Pixel demo:** 18 seed companies (€3M at €15M, pro rata, explicit A/B rounds) in Ownership, and 27 pre-seed companies (€2M at €12M, quick dilution, fixed €3M follow-on into strong exits and outliers) in Exploration. Both are deployed over years 0–3. Reserve is 35%. Ecosystem is a separate use of capital. *Fits the spec ranges: 45 companies and €108M initial deployment. All market values are demo data.*
