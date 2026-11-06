@@ -11,6 +11,7 @@ import { Sensitivity } from './components/center/Sensitivity';
 import { DrillPanel } from './components/drill/DrillPanel';
 import { TooltipLayer } from './components/Tooltip';
 import { Select, TextField } from './components/fields';
+import { ConfirmButton } from './components/ConfirmButton';
 
 export function App() {
   const ready = useStore((s) => s.ready);
@@ -48,7 +49,7 @@ function Header() {
       <span className="muted small" data-tip="Saved locally in this browser (IndexedDB)">{save === 'saving' ? 'Saving…' : save === 'saved' ? 'Saved locally' : save === 'error' ? 'Save failed' : ''}</span>
       <Select value={pref} options={[{ value: 'system', label: 'Theme: system' }, { value: 'light', label: 'Theme: light' }, { value: 'dark', label: 'Theme: dark' }]} onChange={setTheme} />
       {ws.scenarioOrder.length > 0 && (
-        <button className="small" onClick={() => confirm('Reset the workspace? All scenarios and edits in this browser will be deleted.') && resetWorkspace()}>Reset workspace</button>
+        <ConfirmButton className="small" tip="Deletes all scenarios and edits saved in this browser" confirmLabel="Click again to reset" onConfirm={() => resetWorkspace()}>Reset workspace</ConfirmButton>
       )}
     </header>
   );

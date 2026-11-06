@@ -18,7 +18,8 @@
   --accent: #3987e5; --accent-soft: #1d2a3b; --bad: #e66767; --warn: #e0a548; --good: #3fbf3f; --prov-bench: #3987e5; --prov-demo: #8f8e88; --prov-user: #9085e9;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--text); }
+#root { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 h1 { font-size: 18px; } h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); margin: 0; }
 h3 { font-size: 12px; margin: 0; font-weight: 600; } h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); margin: 14px 0 4px; font-weight: 600; }
 .muted { color: var(--muted); } .small { font-size: 11px; } .mono { font-family: var(--mono); }
@@ -32,6 +33,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.small { font-size: 11px; padding: 1px 7px; }
 button.icon { border: none; background: none; padding: 1px 4px; color: var(--muted); } button.icon:hover { color: var(--text); }
+button.armed { color: var(--bad) !important; border-color: var(--bad) !important; font-weight: 600; }
 button.link { border: none; background: none; padding: 0; color: var(--accent); text-align: left; }
 button.link:hover { text-decoration: underline; }
 button.chip { font-size: 11px; padding: 1px 8px; border-radius: 10px; }

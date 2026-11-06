@@ -4,6 +4,7 @@ import { useStore } from '../../state/store';
 import { NumField, Section, Select, TextField, Val } from '../fields';
 import { money, mult, pct } from '../../lib/format';
 import { BucketEditor } from './BucketEditor';
+import { ConfirmButton } from '../ConfirmButton';
 
 export function CohortsEditor({ b }: { b: ScenarioBundle }) {
   const { addCohort } = useStore.getState();
@@ -56,7 +57,7 @@ function CohortEditor({ b, c }: { b: ScenarioBundle; c: CohortStrategy }) {
             {money(res.invested)}m → {money(res.proceeds)}m · {mult(res.grossMoic)}
           </button>
         )}
-        <button className="icon" data-tip="Remove cohort" onClick={() => confirm(`Remove cohort "${c.label}"?`) && removeCohort(sid, c.id)}>✕</button>
+        <ConfirmButton className="icon" tip="Remove cohort" confirmLabel="Remove?" onConfirm={() => removeCohort(sid, c.id)}>✕</ConfirmButton>
       </div>
       <div className="grid3">
         <NumField label="Companies" unit="#" value={c.companyCount} prov={p('companyCount')} min={0} onCommit={(v) => edit(['companyCount'], (x) => (x.companyCount = v))} />

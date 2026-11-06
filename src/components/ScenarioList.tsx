@@ -1,6 +1,7 @@
 import { useStore } from '../state/store';
 import { useBundles } from '../state/results';
 import { mult } from '../lib/format';
+import { ConfirmButton } from './ConfirmButton';
 
 export function ScenarioList() {
   const ws = useStore((s) => s.ws);
@@ -42,15 +43,7 @@ export function ScenarioList() {
                 </td>
                 <td className="actions" onClick={(e) => e.stopPropagation()}>
                   <button className="icon" data-tip="Clone scenario (creates an independent copy to edit)" onClick={() => cloneScenario(id)}>⧉</button>
-                  <button
-                    className="icon"
-                    data-tip="Delete scenario"
-                    onClick={() => {
-                      if (confirm(`Delete "${b.scenario.name}"?`)) deleteScenario(id);
-                    }}
-                  >
-                    ✕
-                  </button>
+                  <ConfirmButton className="icon" tip="Delete scenario" confirmLabel="Delete?" onConfirm={() => deleteScenario(id)}>✕</ConfirmButton>
                 </td>
               </tr>
             );
