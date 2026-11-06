@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CohortMarketOverride, CohortStrategy, Provenance, Scenario, Strategy } from '../../engine';
+import type { BenchmarkPack, CohortMarketOverride, CohortStrategy, MarketCase, Provenance, Scenario, Strategy } from '../../engine';
 import { demoWorkspace } from './demo';
 import { clearState, loadState, saveState } from './persistence';
 import { emptyWorkspace, WORKSPACE_SCHEMA_VERSION, type UiPrefs, type Workspace } from './workspace';
@@ -29,7 +29,7 @@ export type Drill =
   | { kind: 'year'; scenarioId: string; year: number }
   | { kind: 'issues'; scenarioId: string };
 
-export type CenterTab = 'compare' | 'cashflows' | 'proceeds' | 'reserve' | 'sensitivity';
+export type CenterTab = 'compare' | 'cashflows' | 'proceeds' | 'reserve' | 'sensitivity' | 'benchmarks';
 
 interface State {
   ready: boolean;
@@ -57,6 +57,17 @@ interface State {
   editStrategy(scenarioId: string, fn: (s: Strategy) => void, paths: string[]): void;
   setCohortOverride(scenarioId: string, cohortId: string, override: CohortMarketOverride | null, paths: string[]): void;
   addCohort(scenarioId: string): void;
+  addBenchmarkPack(pack: BenchmarkPack): void;
+  deleteBenchmarkPack(id: string): void;
+  /** Save generated market cases; optionally apply entry benchmarks to strategies and create scenarios. */
+  saveBenchmarkCases(args: {
+    cases: MarketCase[];
+    strategyUpdates: { scenarioId: string; strategy: Strategy }[];
+    createFromScenarioId?: string;
+  }): string[];
+  /** Benchmark wizard: which pack is open (UI only, not persisted). */
+  activePackId?: string;
+  setActivePack(id: string | undefined): void;
   removeCohort(scenarioId: string, cohortId: string): void;
 }
 
@@ -220,6 +231,62 @@ export const useStore = create<State>((set, get) => {
         marketProfileId: prof?.id ?? '',
       };
       get().editStrategy(scenarioId, (s) => s.cohorts.push(cohort), [`cohorts.${id}.companyCount`, `cohorts.${id}.entry.ticket`, `cohorts.${id}.entry.postMoney`]);
+    },
+    addBenchmarkPack(pack) {
+      touch(({ ws }) => {
+        ws.benchmarks = { ...ws.benchmarks, [pack.id]: pack };
+      });
+      set({ activePackId: pack.id });
+    },
+    deleteBenchmarkPack(id) {
+      touch(({ ws }) => {
+        const next = { ...ws.benchmarks };
+        delete next[id];
+        ws.benchmarks = next;
+      });
+      if (get().activePackId === id) set({ activePackId: undefined });
+    },
+    setActivePack(id) {
+      set({ activePackId: id });
+    },
+    saveBenchmarkCases({ cases, strategyUpdates, createFromScenarioId }) {
+      const created: string[] = [];
+      touch((d) => {
+        for (const c of cases) d.ws.marketCases[c.id] = c;
+        for (const u of strategyUpdates) {
+          const sc = d.ws.scenarios[u.scenarioId];
+          if (sc) d.ws.strategies[sc.strategyId] = { ...u.strategy, id: sc.strategyId };
+        }
+        const src = createFromScenarioId ? d.ws.scenarios[createFromScenarioId] : undefined;
+        if (src) {
+          const baseStrat = d.ws.strategies[src.strategyId];
+          const title = { downside: 'Downside', base: 'Base', upside: 'Upside', custom: 'Custom' } as const;
+          let at = d.ws.scenarioOrder.indexOf(src.id) + 1;
+          for (const c of cases) {
+            const st = structuredClone(baseStrat);
+            st.id = uid('st');
+            d.ws.strategies[st.id] = st;
+            const id = uid('sc');
+            d.ws.scenarios[id] = {
+              id,
+              name: `${baseStrat.name.replace(/ \(demo\)$/, '')} × ${c.name}`,
+              strategyId: st.id,
+              marketCaseId: c.id,
+              cohortOverrides: {},
+              provenance: {},
+              parentId: src.id,
+              origin: 'generated',
+              createdAt: now(),
+              notes: `${title[c.kind]} case generated from a benchmark pack.`,
+            };
+            d.ws.scenarioOrder.splice(at++, 0, id);
+            created.push(id);
+          }
+        }
+        d.ws.dataLabel = 'benchmark pack';
+      });
+      if (created.length) set({ ui: { ...get().ui, focusedId: created[1] ?? created[0], compareIds: created.slice(0, 3) }, centerTab: 'compare', drill: null });
+      return created;
     },
     removeCohort(scenarioId, cohortId) {
       get().editStrategy(scenarioId, (s) => (s.cohorts = s.cohorts.filter((c) => c.id !== cohortId)), []);

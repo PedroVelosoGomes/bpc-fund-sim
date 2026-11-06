@@ -14,7 +14,8 @@ export { perturb, sensitivityGrid, defaultAxis, metricValue, SENSITIVITY_VARIABL
 export { resolveScenario, findProfile, type Strategy, type MarketCase, type MarketCaseKind, type MarketProfile, type CohortStrategy, type Scenario, type CohortMarketOverride } from './scenario';
 export * as presets from './preset';
 export * as schemas from './schema';
-export const ENGINE_VERSION = '0.2.0';
+export const ENGINE_VERSION = '0.3.0';
 export { deriveMarketCase, type DeriveSpec, type ProfileAdjustment } from './marketCase';
 export { comparePolicies, type PolicyOutcome } from './policy';
 export { provenanceFor } from './scenario';
+export * from './benchmark';

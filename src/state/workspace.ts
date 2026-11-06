@@ -1,14 +1,16 @@
 import { z } from 'zod';
-import { schemas, type MarketCase, type Scenario, type Strategy } from '../../engine';
+import { schemas, type BenchmarkPack, type MarketCase, type Scenario, type Strategy } from '../../engine';
 
 /** Bump when the persisted shape changes; add a migration in persistence.ts. */
-export const WORKSPACE_SCHEMA_VERSION = 1;
+export const WORKSPACE_SCHEMA_VERSION = 2;
 
 export interface Workspace {
   schemaVersion: number;
   strategies: Record<string, Strategy>;
   marketCases: Record<string, MarketCase>;
   scenarios: Record<string, Scenario>;
+  /** Imported benchmark packs (v2+). */
+  benchmarks: Record<string, BenchmarkPack>;
   /** Display order of scenarios in the list. */
   scenarioOrder: string[];
   /** Data origin, shown in the header. */
@@ -33,6 +35,7 @@ export const workspaceSchema = z.object({
   strategies: z.record(schemas.strategySchema),
   marketCases: z.record(schemas.marketCaseSchema),
   scenarios: z.record(schemas.scenarioSchema),
+  benchmarks: z.record(schemas.benchmarkPackSchema),
   scenarioOrder: z.array(z.string()),
   dataLabel: z.enum(['illustrative demo data', 'benchmark pack', 'empty']),
   updatedAt: z.string(),
@@ -49,6 +52,7 @@ export const emptyWorkspace = (): Workspace => ({
   strategies: {},
   marketCases: {},
   scenarios: {},
+  benchmarks: {},
   scenarioOrder: [],
   dataLabel: 'empty',
   updatedAt: new Date().toISOString(),

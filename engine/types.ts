@@ -71,6 +71,8 @@ export interface FundTerms {
   committedCapital: number;
   investmentPeriodYears: number;
   fundLifeYears: number;
+  /** Calendar year of fund start (year 0). Used to match benchmark vintages. Optional. */
+  vintageYear?: number;
   fees: FeeTerms;
   carry: CarryTerms;
   reserve: ReserveTerms;

@@ -17,6 +17,8 @@ export const MIGRATIONS: Record<number, Migration> = {
     workspace: { dataLabel: 'illustrative demo data', scenarioOrder: Object.keys(s.workspace?.scenarios ?? {}), ...s.workspace, schemaVersion: 1 },
     ui: s.ui ?? { compareIds: [], theme: 'system' },
   }),
+  // v1 → v2: benchmark packs added to the workspace.
+  1: (s) => ({ ...s, schemaVersion: 2, workspace: { ...s.workspace, schemaVersion: 2, benchmarks: s.workspace?.benchmarks ?? {} } }),
 };
 
 export function migrate(raw: any): { state: PersistedState | null; error?: string; migratedFrom?: number } {

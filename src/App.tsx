@@ -8,6 +8,8 @@ import { CohortsEditor } from './components/editor/CohortEditor';
 import { Comparison } from './components/center/Comparison';
 import { AnnualChart, JCurveChart, ProceedsChart, ReserveView } from './components/center/Charts';
 import { Sensitivity } from './components/center/Sensitivity';
+import { Benchmarks } from './components/center/Benchmarks';
+import { samplePack } from './lib/benchmarks';
 import { DrillPanel } from './components/drill/DrillPanel';
 import { TooltipLayer } from './components/Tooltip';
 import { Select, TextField } from './components/fields';
@@ -65,10 +67,31 @@ function Welcome() {
           <p className="muted">Bright Pixel demo preset: €250M fund, Ownership / Exploration / Ecosystem sleeves, Balanced and Concentrated strategies under demo Downside, Base and Upside cases. Every market value is labelled <span className="badge demo">demo data</span>.</p>
           <button className="primary" onClick={() => useStore.getState().loadDemo()}>Load demo data</button>
         </div>
-        <div className="card disabled">
+        <div className="card">
           <h3>Benchmark pack</h3>
-          <p className="muted">Import a CSV / JSON benchmark pack and generate Downside, Base and Upside cases from it.</p>
-          <button disabled>Available in phase 3</button>
+          <p className="muted">Import a CSV / JSON benchmark pack, review the matches and generate Downside, Base and Upside cases from it. Fund and portfolio structure start from the demo preset; every value a benchmark sets is labelled with its source and date.</p>
+          <div className="row gap">
+            <button
+              className="primary"
+              onClick={() => {
+                const st = useStore.getState();
+                st.loadDemo();
+                st.addBenchmarkPack(samplePack());
+                st.setCenterTab('benchmarks');
+              }}
+            >
+              Start from the illustrative sample pack
+            </button>
+            <button
+              onClick={() => {
+                const st = useStore.getState();
+                st.loadDemo();
+                st.setCenterTab('benchmarks');
+              }}
+            >
+              Import my own pack…
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -87,6 +110,7 @@ function Workspace() {
     { id: 'proceeds', label: 'Proceeds' },
     { id: 'reserve', label: 'Reserve' },
     { id: 'sensitivity', label: 'Sensitivity' },
+    { id: 'benchmarks', label: 'Benchmarks' },
   ];
   return (
     <main className="layout">
@@ -113,6 +137,7 @@ function Workspace() {
           {tab === 'proceeds' && (compared.length ? <ProceedsChart bundles={compared} /> : <Empty />)}
           {tab === 'reserve' && (focused ? <ReserveView b={focused} /> : <Empty />)}
           {tab === 'sensitivity' && (focused ? <Sensitivity b={focused} /> : <Empty />)}
+          {tab === 'benchmarks' && <Benchmarks />}
         </div>
       </section>
       <aside className="right">

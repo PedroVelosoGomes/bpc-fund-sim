@@ -28,6 +28,7 @@ export function demoWorkspace(): Workspace {
     strategies: {},
     marketCases: Object.fromEntries(cases.map((c) => [c.id, c])),
     scenarios: {},
+    benchmarks: {},
     scenarioOrder: [],
     dataLabel: 'illustrative demo data',
     updatedAt: new Date().toISOString(),

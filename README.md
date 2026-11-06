@@ -2,9 +2,9 @@
 
 A fund-construction simulator for investment professionals. It runs a deterministic expected-value engine over deal cohorts, outcome buckets, follow-on policies, fees and a European carry waterfall.
 
-> **Status: Phase 2 of 5.**
-> - Done: engine, demo preset, three-area workspace (editor, comparison, drill-down) and local persistence.
-> - Next: benchmark import (phase 3), then strategy search (phase 4).
+> **Status: Phase 3 of 5.**
+> - Done: engine, demo preset, three-area workspace, persistence, and benchmark import with Downside/Base/Upside generation.
+> - Next: strategy search (phase 4).
 
 ## Run
 ```bash
@@ -24,6 +24,30 @@ npm test         # Vitest engine tests
    - Annual cash flows, proceeds by cohort × outcome, reserve view, and a sensitivity heatmap.
 4. **Right:** drill-down. Click any metric, chart bar, cohort, bucket or year to see what produced it, with provenance on every input.
 
+## Benchmark packs (Benchmarks tab)
+1. **Import & review rows.**
+   - Bring in a CSV or JSON file, or paste the text, or load `benchmarks/sample-benchmark-pack.csv`.
+   - The sample is **illustrative and not real data**.
+   - You can copy or download the CSV template.
+   - Every row is unit-checked against the fund currency:
+     - A different currency is **blocked**; there is never FX conversion.
+     - A different scale (EUR k → EUR m, months → years) is converted and flagged.
+     - Bad ranges or units are blocked.
+2. **Match & preview changes.**
+   - Rows are matched to each assumption by stage, then geography, then the vintage closest to the fund's.
+   - Bucket-specific rows (e.g. `exit_equity_value_outlier`) beat unsuffixed ones.
+   - The preview diffs current value against benchmark base, shows the chosen row (source, as-of date, row number) and lists the flags.
+   - Ties must be resolved by choosing a row.
+   - Assumptions with no benchmark, and rows that are never used, are listed.
+   - If ticket ÷ post-money disagrees with an ownership row by more than 1pp, it is flagged.
+3. **Generate cases.**
+   - A per-metric mapping is shown before saving. By default, Downside uses low exits, high dilution, later exits and a high write-off rate; Upside is the mirror.
+   - A residual bucket (default: modest exit) absorbs probability changes, and the preview shows the resulting distribution for each case. Saving is blocked if any distribution is invalid.
+   - Saving creates three market cases with benchmark provenance on every value they set. Optionally it also applies entry benchmarks to chosen strategies and creates strategy × Downside/Base/Upside scenarios.
+   - Cases are labelled assumption bundles unless the pack is marked as percentile-based.
+
+Row schema: `metric, stage, geography, vintage, unit, low, base, high, source, as_of, notes` (lines starting with `#` are ignored). The metrics, the bucket suffixes and the unit rules are in the template, and in `engine/benchmark.ts`.
+
 **Hover any number** to see its provenance. Styling shows the source:
 - benchmark: solid blue underline
 - demo data: dashed grey underline
@@ -40,6 +64,8 @@ npm test         # Vitest engine tests
 - `engine/` — pure TS calculation engine. Its public API is documented in [`engine/README.md`](engine/README.md), and tests are in `engine/__tests__`.
 - `src/state/` — Zustand store (copy-on-write edits), memoised results, IndexedDB persistence and migrations, demo workspace.
 - `src/components/` — `ScenarioList`, `editor/` (fund, cohorts, buckets), `center/` (comparison, charts, sensitivity), `drill/` (drill-down panel).
+- `benchmarks/sample-benchmark-pack.csv` — illustrative sample pack (not real data).
+- `scripts/build-artifact.mjs` — `npm run build:single` bundles the app into one self-contained HTML page.
 - `ASSUMPTIONS.md` — every decision made where the spec was silent.
 
 ## The model in one page

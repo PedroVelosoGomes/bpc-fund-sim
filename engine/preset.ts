@@ -15,6 +15,7 @@ export const brightPixelFund: FundTerms = {
   committedCapital: 250,
   investmentPeriodYears: 5,
   fundLifeYears: 10,
+  vintageYear: 2025,
   fees: { enabled: true, investmentPeriodRate: 0.02, postPeriodRate: 0.015, postPeriodBasis: 'net_invested' },
   carry: { enabled: true, convention: 'european', carryRate: 0.2, hurdleRate: 0.08, catchUpRate: 1 },
   reserve: { mode: 'percent', value: 0.35 },

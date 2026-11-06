@@ -18,6 +18,7 @@ export const fundTermsSchema = z.object({
   committedCapital: num.positive(),
   investmentPeriodYears: z.number().int().min(0),
   fundLifeYears: z.number().int().min(1),
+  vintageYear: z.number().int().optional(),
   fees: z.object({ enabled: z.boolean(), investmentPeriodRate: prob, postPeriodRate: prob, postPeriodBasis: z.enum(['net_invested', 'commitments']) }),
   carry: z.object({ enabled: z.boolean(), convention: z.literal('european'), carryRate: prob, hurdleRate: num.min(0), catchUpRate: prob }),
   reserve: z.object({ mode: z.enum(['amount', 'percent']), value: nonNeg }),
@@ -116,4 +117,34 @@ export const scenarioSchema = z.object({
   origin: z.enum(['demo', 'generated', 'clone', 'proposal', 'user']).optional(),
   createdAt: z.string().optional(),
   notes: z.string().optional(),
+});
+
+export const issueSchema = z.object({ severity: z.enum(['error', 'warning', 'info']), code: z.string(), message: z.string(), path: z.string().optional() });
+
+export const benchmarkRowSchema = z.object({
+  id: z.string(),
+  rowNumber: z.number().int(),
+  metric: z.string(),
+  baseMetric: z.enum(['initial_ticket', 'entry_post_money', 'entry_ownership', 'dilution_per_round', 'cumulative_dilution', 'time_to_exit', 'exit_equity_value', 'exit_revenue_multiple', 'outcome_rate']),
+  bucket: z.string().optional(),
+  stage: z.string(),
+  geography: z.string(),
+  vintage: z.number().int().nullable(),
+  unit: z.string(),
+  low: num,
+  base: num,
+  high: num,
+  source: z.string(),
+  asOf: z.string(),
+  notes: z.string(),
+});
+
+export const benchmarkPackSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  importedAt: z.string(),
+  format: z.enum(['csv', 'json']),
+  percentileBacked: z.boolean(),
+  rows: z.array(benchmarkRowSchema),
+  parseIssues: z.array(issueSchema),
 });

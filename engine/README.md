@@ -1,4 +1,4 @@
-# `/engine` — public API (v0.2.0)
+# `/engine` — public API (v0.3.0)
 
 Pure TypeScript. No React, DOM or I/O; the only dependency is `zod` (in `schema.ts`). Inputs and outputs are plain JSON. Every function is deterministic and does not change its inputs. This module is meant to move into Frontier, so treat everything exported from `engine/index.ts` as a public contract. Anything not exported there is internal.
 
@@ -25,6 +25,13 @@ Pure TypeScript. No React, DOM or I/O; the only dependency is `zod` (in `schema.
 | `deriveMarketCase(base, spec)` | Derives a Downside/Upside case from stage-level adjustments, keeping probabilities coherent (residual bucket absorbs). |
 | `comparePolicies(cohort, fundLife)` | Cash and ownership consequences of none / pro rata / fixed follow-on for one cohort. |
 | `provenanceFor(scenario, strategy, marketCase, path)` | Looks up provenance: scenario override → strategy → market-case profile. |
+| `parseBenchmarkCsv(text, meta)` / `parseBenchmarkJson(text, meta)` | Parse a benchmark pack. Comment lines start with `#`. Row issues are collected; parsing never throws. |
+| `normalizeRow(row, currency)` / `unitFactor(metric, unit, currency)` | Unit checks and conversion to model units. A currency mismatch blocks the row; a scale change converts with a flag. |
+| `listAssumptions(profiles, cohorts)` | Every assumption a row could set: market-profile values, plus entry values for each cohort (keyed by strategy). |
+| `matchBenchmarks(pack, refs, { fundCurrency, fundVintage, selections })` | Ranks rows by bucket specificity → stage → geography → vintage. Reports ties, unmatched assumptions, unused rows and entry-consistency flags. |
+| `generateBenchmarkCases(baseCase, match, pack, { mapping, residuals, idFor })` | Downside/Base/Upside market cases with coherent probabilities (the residual bucket absorbs changes), plus benchmark provenance and validity. |
+| `applyEntryBenchmarks(strategy, match, pack)` | Sets ticket and post-money (or another pair) from base values and derives the third. |
+| `BENCHMARK_CSV_TEMPLATE`, `DEFAULT_CASE_MAPPING` | Template text and the default low/high mapping. |
 | `schemas.*` | Zod schemas for every persisted or imported type. |
 | `presets.*` | Bright Pixel demo preset (all values are demo data). |
 
