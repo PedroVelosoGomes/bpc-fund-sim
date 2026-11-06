@@ -49,3 +49,15 @@ Decisions made where the spec was silent or ambiguous. Each has a one-line ratio
 
 ## Demo preset
 30. **Bright Pixel demo:** 18 seed companies (€3M at €15M, pro rata, explicit A/B rounds) in Ownership, and 27 pre-seed companies (€2M at €12M, quick dilution, fixed €3M follow-on into strong exits and outliers) in Exploration. Both are deployed over years 0–3. Reserve is 35%. Ecosystem is a separate use of capital. *Fits the spec ranges: 45 companies and €108M initial deployment. All market values are demo data.*
+
+## Phase 2 — workspace, editing, comparison
+31. **Each scenario owns its strategy copy.** Clone forks the strategy, so editing one scenario never changes another. A scenario is still (strategy, market case), and market cases are shared. *This is the safest reading of "clone and edit". Running two strategies under one case is done by switching their market case.*
+32. **Market-side edits are per-scenario overrides.** Edits to rounds, dilution mode and buckets for a cohort are stored on the scenario (`cohortOverrides`) and never written to the shared market case. *Lets one scenario deviate without silently changing every scenario on that case.*
+33. **Bucket edits are buffered.** Save is blocked until probabilities sum to 100% (±1e-6). Other inputs commit on blur or Enter, and the results update right away. *The spec requires blocking saves on invalid probabilities, and immediate feedback is better for the other inputs.*
+34. **Provenance lookup order:** scenario override → strategy → market-case profile → "default". The first user edit records the previous provenance, shown as "was …". *Where a number came from stays traceable after an override.*
+35. **Compare is capped at 3.** Deltas are shown against the first compared column, and a delta that rounds to zero is hidden. *The spec says three. The first column acts as the reference.*
+36. **The J-curve uses cumulative LP net cash flow.** That is after fees and carry when both are on. If either is off, it is proceeds − paid-in, labelled "before carry". *An LP-perspective J-curve is the standard view.*
+37. **Sensitivity runs on the main thread.** A 9×9 grid is 81 engine runs, each well under 1ms. *A worker is reserved for strategy search in phase 4.*
+38. **Demo Downside/Upside cases come from demo low/base/high ranges.** Downside uses low exit values, high write-off, +1 year to exit and 1.2× dilution. Upside mirrors it. Both are labelled demo data and as assumption bundles, not percentiles. *Gives a working Downside/Base/Upside comparison before benchmark import (phase 3) replaces the ranges.*
+39. **Chart colours follow the validated reference palette.** Its first three categorical slots match the three-scenario cap, there is one accent (blue), and the heatmap uses a single-hue blue sequential ramp. *Colour-blind-safe in both themes.*
+40. **Persistence:** one IndexedDB record holds the workspace and UI preferences, with `schemaVersion`. Saves are debounced by 300ms. If saved data can't be read, it is copied to a backup key before starting fresh. *Never silently drop a user's work.*

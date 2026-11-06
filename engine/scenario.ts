@@ -56,6 +56,10 @@ export interface MarketCase {
   /** True only when the source benchmark explicitly supports a percentile reading. Default false: assumption bundle. */
   percentileBacked: boolean;
   note?: string;
+  /** Provenance of profile values, keyed "profiles.<profileId>.<path>". */
+  provenance?: ProvenanceMap;
+  /** Id of the case this one was derived from, if any. */
+  derivedFrom?: string;
 }
 
 export interface Strategy {
@@ -63,6 +67,8 @@ export interface Strategy {
   name: string;
   fund: FundTerms;
   cohorts: CohortStrategy[];
+  /** Provenance of strategy values, keyed "fund.<path>" / "cohorts.<cohortId>.<path>". */
+  provenance?: ProvenanceMap;
 }
 
 export type CohortMarketOverride = Partial<Pick<MarketProfile, 'dilutionMode' | 'rounds' | 'buckets' | 'residualBucketId'>>;
@@ -73,6 +79,7 @@ export interface Scenario {
   strategyId: string;
   marketCaseId: string;
   cohortOverrides: Record<string, CohortMarketOverride>;
+  /** Provenance of scenario-level overrides, keyed "cohorts.<cohortId>.<path>". */
   provenance: ProvenanceMap;
   parentId?: string;
   origin?: 'demo' | 'generated' | 'clone' | 'proposal' | 'user';
@@ -120,4 +127,29 @@ export function resolveScenario(strategy: Strategy, marketCase: MarketCase, over
     });
   }
   return { model: { fund: strategy.fund, cohorts }, issues };
+}
+
+/**
+ * Provenance lookup for a value as displayed in a scenario.
+ * Order: scenario override → strategy → market case (cohort path mapped to its profile) → undefined.
+ * @param path e.g. "fund.committedCapital", "cohorts.c1.entry.ticket", "cohorts.c1.buckets.ou.probability"
+ */
+export function provenanceFor(scenario: Scenario, strategy: Strategy, marketCase: MarketCase | undefined, path: string): ProvenanceMap[string] | undefined {
+  if (scenario.provenance[path]) return scenario.provenance[path];
+  if (strategy.provenance?.[path]) return strategy.provenance[path];
+  const m = /^cohorts\.([^.]+)\.(.+)$/.exec(path);
+  if (m && marketCase) {
+    const cohort = strategy.cohorts.find((c) => c.id === m[1]);
+    if (cohort) {
+      const { profile } = findProfile(marketCase, cohort);
+      if (profile) {
+        const p = marketCase.provenance?.[`profiles.${profile.id}.${m[2]}`];
+        if (p) return p;
+        // fall back to a parent path (e.g. "...buckets.ou" for "...buckets.ou.probability")
+        const parent = `profiles.${profile.id}.${m[2].split('.').slice(0, -1).join('.')}`;
+        if (marketCase.provenance?.[parent]) return marketCase.provenance[parent];
+      }
+    }
+  }
+  return undefined;
 }

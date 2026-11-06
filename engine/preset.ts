@@ -4,6 +4,7 @@
  */
 import type { MarketCase, MarketProfile, Scenario, Strategy } from './scenario';
 import type { FundTerms, OutcomeBucket, ProvenanceMap } from './types';
+import { deriveMarketCase, type ProfileAdjustment } from './marketCase';
 
 export const DEMO_LABEL = 'demo data';
 
@@ -117,20 +118,50 @@ export const brightPixelStrategy: Strategy = {
   ],
 };
 
-/** Every market and entry value in the preset is demo data. */
-export function demoProvenance(strategy: Strategy, mc: MarketCase): ProvenanceMap {
+const DEMO = { kind: 'demo' as const, note: DEMO_LABEL };
+
+/** Strategy-side provenance: every fund and cohort input is demo data. */
+export function demoStrategyProvenance(strategy: Strategy): ProvenanceMap {
   const p: ProvenanceMap = {};
-  const demo = { kind: 'demo' as const, note: DEMO_LABEL };
-  for (const k of ['committedCapital', 'investmentPeriodYears', 'fundLifeYears', 'reserve', 'fees', 'carry', 'sleeves']) p[`fund.${k}`] = demo;
-  for (const c of strategy.cohorts) {
-    for (const k of ['companyCount', 'entry.ticket', 'entry.postMoney', 'entry.ownership', 'deployment', 'followOn']) p[`cohorts.${c.id}.${k}`] = demo;
-  }
+  for (const k of ['committedCapital', 'investmentPeriodYears', 'fundLifeYears', 'reserve', 'fees', 'carry', 'sleeves']) p[`fund.${k}`] = DEMO;
+  for (const c of strategy.cohorts)
+    for (const k of ['companyCount', 'entry.ticket', 'entry.postMoney', 'entry.ownership', 'deployment', 'followOn']) p[`cohorts.${c.id}.${k}`] = DEMO;
+  return p;
+}
+
+/** Market-side provenance: every round and bucket value is demo data. */
+export function demoMarketProvenance(mc: MarketCase): ProvenanceMap {
+  const p: ProvenanceMap = {};
   for (const prof of mc.profiles) {
-    for (const r of prof.rounds) p[`profiles.${prof.id}.rounds.${r.id}`] = demo;
-    for (const bk of prof.buckets) for (const k of ['probability', 'yearsToExit', 'exit', 'roundsReached', 'cumulativeDilution']) p[`profiles.${prof.id}.buckets.${bk.id}.${k}`] = demo;
+    p[`profiles.${prof.id}.rounds`] = DEMO;
+    for (const r of prof.rounds) p[`profiles.${prof.id}.rounds.${r.id}`] = DEMO;
+    for (const bk of prof.buckets) {
+      p[`profiles.${prof.id}.buckets.${bk.id}`] = DEMO;
+      for (const k of ['probability', 'yearsToExit', 'exit', 'roundsReached', 'cumulativeDilution']) p[`profiles.${prof.id}.buckets.${bk.id}.${k}`] = DEMO;
+    }
   }
   return p;
 }
+
+/** @deprecated kept for compatibility: union of strategy and market provenance. */
+export function demoProvenance(strategy: Strategy, mc: MarketCase): ProvenanceMap {
+  return { ...demoStrategyProvenance(strategy), ...demoMarketProvenance(mc) };
+}
+
+brightPixelStrategy.provenance = demoStrategyProvenance(brightPixelStrategy);
+brightPixelBaseCase.provenance = demoMarketProvenance(brightPixelBaseCase);
+
+/** A concentrated alternative: fewer, larger Ownership positions; smaller Exploration sleeve. Demo data. */
+export const concentratedStrategy: Strategy = {
+  id: 'st-bpc-concentrated',
+  name: 'Concentrated (demo)',
+  fund: brightPixelFund,
+  cohorts: [
+    { ...brightPixelStrategy.cohorts[0], companyCount: 18, entry: { ticket: 4, postMoney: 16, ownership: 0.25, derived: 'ownership' } },
+    { ...brightPixelStrategy.cohorts[1], companyCount: 14 },
+  ],
+};
+concentratedStrategy.provenance = demoStrategyProvenance(concentratedStrategy);
 
 export const brightPixelScenario: Scenario = {
   id: 'sc-bpc-balanced-base',
@@ -138,12 +169,25 @@ export const brightPixelScenario: Scenario = {
   strategyId: brightPixelStrategy.id,
   marketCaseId: brightPixelBaseCase.id,
   cohortOverrides: {},
-  provenance: demoProvenance(brightPixelStrategy, brightPixelBaseCase),
+  provenance: {},
   origin: 'demo',
 };
 
 /** Demo low/base/high ranges per stage, used to seed Downside/Upside before a benchmark is imported (phase 3). */
 export const demoRanges = {
-  seed: { exitValueMultiplier: { low: 0.6, base: 1, high: 1.4 }, writeOffRate: { low: 0.42, base: 0.5, high: 0.6 }, timeToExitShift: { low: -1, base: 0, high: 1 } },
-  'pre-seed': { exitValueMultiplier: { low: 0.6, base: 1, high: 1.4 }, writeOffRate: { low: 0.52, base: 0.6, high: 0.7 }, timeToExitShift: { low: -1, base: 0, high: 1 } },
+  seed: { exitValueMultiplier: { low: 0.6, base: 1, high: 1.4 }, writeOffRate: { low: 0.42, base: 0.5, high: 0.6 }, timeToExitShift: { low: -1, base: 0, high: 1 }, dilutionMultiplier: { low: 0.85, base: 1, high: 1.2 } },
+  'pre-seed': { exitValueMultiplier: { low: 0.6, base: 1, high: 1.4 }, writeOffRate: { low: 0.52, base: 0.6, high: 0.7 }, timeToExitShift: { low: -1, base: 0, high: 1 }, dilutionMultiplier: { low: 0.85, base: 1, high: 1.2 } },
 } as const;
+
+/** Demo Downside / Upside cases: Downside = low exits, high write-offs, high dilution, later exits; Upside mirrors. */
+export function demoMarketCases(): MarketCase[] {
+  const down: Record<string, ProfileAdjustment> = {};
+  const up: Record<string, ProfileAdjustment> = {};
+  for (const [stage, r] of Object.entries(demoRanges)) {
+    down[stage] = { exitValueMultiplier: r.exitValueMultiplier.low, writeOffRate: r.writeOffRate.high, timeToExitShift: r.timeToExitShift.high, dilutionMultiplier: r.dilutionMultiplier.high };
+    up[stage] = { exitValueMultiplier: r.exitValueMultiplier.high, writeOffRate: r.writeOffRate.low, timeToExitShift: r.timeToExitShift.low, dilutionMultiplier: r.dilutionMultiplier.low };
+  }
+  const downside = deriveMarketCase(brightPixelBaseCase, { id: 'mc-demo-downside', name: 'Downside (demo)', kind: 'downside', adjustments: down }).marketCase;
+  const upside = deriveMarketCase(brightPixelBaseCase, { id: 'mc-demo-upside', name: 'Upside (demo)', kind: 'upside', adjustments: up }).marketCase;
+  return [downside, brightPixelBaseCase, upside];
+}

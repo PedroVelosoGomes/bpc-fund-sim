@@ -1,4 +1,4 @@
-# `/engine` — public API (v0.1.0)
+# `/engine` — public API (v0.2.0)
 
 Pure TypeScript. No React, DOM or I/O; the only dependency is `zod` (in `schema.ts`). Inputs and outputs are plain JSON. Every function is deterministic and does not change its inputs. This module is meant to move into Frontier, so treat everything exported from `engine/index.ts` as a public contract. Anything not exported there is internal.
 
@@ -22,6 +22,9 @@ Pure TypeScript. No React, DOM or I/O; the only dependency is `zod` (in `schema.
 | `irr(flows)` → `IrrResult` | Annual IRR: Newton's method with bisection fallback, and explicit N/A reasons. |
 | `perturb(model, variable, value)` / `sensitivityGrid(model, x, y, metric)` | Sensitivity analysis (7×7 by default). |
 | `renormaliseInto`, `setRateWithResidual`, `probabilitySum` | Keeps outcome probabilities consistent. |
+| `deriveMarketCase(base, spec)` | Derives a Downside/Upside case from stage-level adjustments, keeping probabilities coherent (residual bucket absorbs). |
+| `comparePolicies(cohort, fundLife)` | Cash and ownership consequences of none / pro rata / fixed follow-on for one cohort. |
+| `provenanceFor(scenario, strategy, marketCase, path)` | Looks up provenance: scenario override → strategy → market-case profile. |
 | `schemas.*` | Zod schemas for every persisted or imported type. |
 | `presets.*` | Bright Pixel demo preset (all values are demo data). |
 

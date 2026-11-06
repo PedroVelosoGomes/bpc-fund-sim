@@ -93,13 +93,15 @@ export const marketCaseSchema = z.object({
   profiles: z.array(marketProfileSchema),
   percentileBacked: z.boolean(),
   note: z.string().optional(),
+  provenance: z.record(provenanceSchema).optional(),
+  derivedFrom: z.string().optional(),
 });
 
 export const cohortStrategySchema = cohortSchema
   .omit({ dilutionMode: true, rounds: true, buckets: true, residualBucketId: true })
   .extend({ marketProfileId: z.string() });
 
-export const strategySchema = z.object({ id: z.string(), name: z.string(), fund: fundTermsSchema, cohorts: z.array(cohortStrategySchema) });
+export const strategySchema = z.object({ id: z.string(), name: z.string(), fund: fundTermsSchema, cohorts: z.array(cohortStrategySchema), provenance: z.record(provenanceSchema).optional() });
 
 export const scenarioSchema = z.object({
   id: z.string(),

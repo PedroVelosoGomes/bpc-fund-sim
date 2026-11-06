@@ -24,9 +24,10 @@ describe('Bright Pixel demo preset', () => {
     expect(r.capital.initialInvested).toBeLessThanOrEqual(125);
   });
   it('labels every market value as demo data', () => {
-    const prov = P.brightPixelScenario.provenance;
+    const prov = { ...P.brightPixelStrategy.provenance, ...P.brightPixelBaseCase.provenance };
     expect(Object.values(prov).every((p) => p.kind === 'demo')).toBe(true);
     expect(prov['profiles.mp-seed-eu.buckets.ou.exit']).toBeDefined();
+    expect(prov['cohorts.co-ownership.entry.ticket']).toBeDefined();
   });
   it('validates against the Zod schemas', () => {
     expect(schemas.strategySchema.safeParse(P.brightPixelStrategy).success).toBe(true);
@@ -38,5 +39,25 @@ describe('Bright Pixel demo preset', () => {
     expect(r.gross.moic).toBeGreaterThan(1);
     expect(r.net.available).toBe(true);
     expect(r.gross.irr.ok).toBe(true);
+  });
+});
+
+describe('demo market cases and concentrated strategy', () => {
+  const cases = P.demoMarketCases();
+  const moic = (mcIdx: number, st = P.brightPixelStrategy) => evaluateFund(resolveScenario(st, cases[mcIdx]).model).gross.moic!;
+  it('orders Downside < Base < Upside', () => {
+    expect(moic(0)).toBeLessThan(moic(1));
+    expect(moic(1)).toBeLessThan(moic(2));
+  });
+  it('keeps probabilities coherent (write-off moves, modest absorbs)', () => {
+    const seed = cases[0].profiles.find((p) => p.stage === 'seed')!;
+    expect(seed.buckets.reduce((a, b) => a + b.probability, 0)).toBeCloseTo(1);
+    expect(seed.buckets.find((b) => b.kind === 'writeoff')!.probability).toBeCloseTo(0.6);
+    expect(seed.buckets.find((b) => b.kind === 'modest')!.probability).toBeCloseTo(0.2);
+    expect(cases[0].percentileBacked).toBe(false);
+  });
+  it('concentrated strategy evaluates without errors', () => {
+    const r = evaluateFund(resolveScenario(P.concentratedStrategy, cases[1]).model);
+    expect(r.issues.filter((i) => i.severity === 'error')).toEqual([]);
   });
 });
